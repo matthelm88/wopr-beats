@@ -268,7 +268,7 @@ textarea{width:100%;min-height:140px;background:var(--faint);color:var(--fg);bor
 
     <section id="tab-guide" class="tab scroll guide" hidden>
       <p class="console">&gt; HOW TO PLAY</p>
-      <section><h2>QUICK START</h2><p>Tap STYLE to change style, set DEFCON and tap NEW BEAT. Tap the play button at the bottom to hear it; tap again to pause. DEFCON 5 gives classic grooves; DEFCON 1 goes wild. Every button with a die is a roll: tap it again for a new result.</p></section>
+      <section><h2>QUICK START</h2><p>Tap STYLE to change style, set DEFCON and tap NEW BEAT. Tap play at the bottom to hear it from the start of Pattern 1; tap stop to end it. DEFCON 5 gives classic grooves; DEFCON 1 goes wild. Every button with a die is a roll: tap it again for a new result.</p></section>
       <section><h2>STYLES</h2><p>BIG BEAT: Chemical Brothers, Prodigy. IDM: Autechre and glitch. INDUSTRIAL: Skinny Puppy, Front Line Assembly, KMFDM, Ministry. JUNKYARD: Einstürzende Neubauten metal percussion.</p></section>
       <section><h2>SHAPE IT</h2><p>The small grid shows all five sounds. Tap a row to pick a sound, then tap the big 4x4 pads (laid out like the PO buttons) to turn its steps on or off. With a sound picked, then LOCK it to keep it through new rolls, or SOLO it to hear it alone. NEW BEAT throws everything out and rolls a whole new beat across every pattern. TWEAK keeps your beat and changes only a few steps on the pattern you are looking at. The arrows at the top step back and forward through your recent results.</p></section>
       <section><h2>FILLS</h2><p>Pick a pattern tab, then tap FILL. The second half of that pattern turns into a fill. Keep tapping FILL to roll new fills on that pattern only. UNFILL puts the original groove back. On a 16-step loop, FILL adds Pattern 2 for the fill.</p></section>
@@ -552,11 +552,11 @@ function mark(){
   $$(`[data-act="page"][data-v="${Math.floor(cur.idx / 16)}"]`).forEach(e => e.classList.add('ph'));
 }
 function start(){
-  audio(); playing = true; vq = []; nextT = AC.currentTime + .06;
+  audio(); playing = true; gstep = 0; vq = []; nextT = AC.currentTime + .06;
   timer = setInterval(tick, 25); tick(); requestAnimationFrame(draw);
   log('PLAYING'); render();
 }
-function stop(){ playing = false; clearInterval(timer); vq = []; if (cur) gstep = cur.idx + 1; cur = null; mark(); log('PAUSED'); render(); }
+function stop(){ playing = false; clearInterval(timer); vq = []; gstep = 0; cur = null; mark(); log('STOPPED'); render(); }
 
 /* ---------- text, strategy, midi ---------- */
 function stepsOf(P, id, lo){ const r = []; for (let i = 0; i < 16; i++) if (P[id][lo + i]) r.push(i + 1); return r; }
@@ -715,8 +715,8 @@ function renderSaved(){
     : '<p class="empty">No saved patterns yet. Tap SAVE on the MACHINE tab when a beat grabs you.</p>';
 }
 function renderBar(){
-  $('#play').innerHTML = playing ? '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="5.5" y="4.5" width="4.5" height="15" fill="currentColor"/><rect x="14" y="4.5" width="4.5" height="15" fill="currentColor"/></svg>' : '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg>'; $('#play').classList.toggle('on', playing);
-  $('#play').setAttribute('aria-label', playing ? 'Pause' : 'Play');
+  $('#play').innerHTML = playing ? '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="5.5" y="5.5" width="13" height="13" fill="currentColor"/></svg>' : '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg>'; $('#play').classList.toggle('on', playing);
+  $('#play').setAttribute('aria-label', playing ? 'Stop' : 'Play from the start');
   $('#tempo').textContent = S.tempo;
   const solos = IDS.filter(id => ui.solo[id]).map(id => NAME[id]);
   const hear = ui.poSolo ? `<b>SOLO ${NAME[ui.poSolo]} · MONO</b>` : solos.length ? `<b>SOLO ${solos.join('+')}</b>${ui.mono ? ' · MONO' : ''}` : (ui.mono ? 'HEARING PO MONO' : 'HEARING FULL KIT');
