@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="WOPR Beats">
+<meta name="theme-color" content="#020b05">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>WOPR Beat Machine</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one-column green-phosphor terminal; sticky status bar on top, console in the middle, fixed nav on the bottom */
+:root{
+  --bg:#020b05;
+  --panel:#04150a;
+  --faint:#072211;
+  --line:#0f4a22;
+  --dim:#1f9a45;
+  --fg:#3dff6e;
+  --lit:#0b3a19;
+  --glow:rgba(61,255,110,.45);
+  --amber:#ffb22e;
+  --red:#ff4a3d;
+  --f-display:"VT323","Courier New",monospace;
+  --f-body:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:13px;line-height:1.5;margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--bg)}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:70;
+  background:repeating-linear-gradient(to bottom,rgba(0,0,0,.22) 0 1px,transparent 1px 3px),
+             radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.6) 100%)}
+button{font:inherit;color:inherit;touch-action:manipulation}
+button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+
+.crt{max-width:560px;margin:0 auto;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:0 calc(96px + env(safe-area-inset-bottom,0px));
+  text-shadow:0 0 6px var(--glow);animation:flicker 7s infinite}
+@keyframes flicker{0%,100%{opacity:1}47%{opacity:1}48%{opacity:.94}49%{opacity:1}82%{opacity:.97}83%{opacity:1}}
+
+/* top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:40;background:var(--bg);
+  display:flex;align-items:center;justify-content:space-between;gap:8px;padding-block:10px;border-bottom:1px dashed var(--line)}
+.brand{font-family:var(--f-display);font-size:28px;line-height:1;letter-spacing:.08em;display:flex;flex-direction:column;align-items:center}
+.brand span{font-size:13px;letter-spacing:.3em;color:var(--dim)}
+.tbtn{background:none;border:1px solid var(--line);font-family:var(--f-display);font-size:18px;padding:4px 8px;min-height:36px;cursor:pointer}
+.tbtn:disabled{opacity:.3;cursor:default}
+.hist{display:flex;align-items:center;gap:4px;font-family:var(--f-display);font-size:18px;font-variant-numeric:tabular-nums}
+
+/* console */
+.console{font-family:var(--f-display);font-size:22px;line-height:1.15;margin:14px 0 4px;min-height:26px}
+.console::after{content:"_";animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+
+.tab{display:flex;flex-direction:column;gap:14px;padding-top:6px}
+.lbl{font-family:var(--f-display);font-size:17px;letter-spacing:.14em;color:var(--dim);margin-bottom:6px;display:flex;justify-content:space-between;gap:8px}
+.lbl b{color:var(--fg);font-weight:400}
+
+.btn{background:transparent;border:1px solid var(--dim);font-family:var(--f-display);font-size:20px;letter-spacing:.06em;
+  padding:6px 10px;min-height:42px;cursor:pointer;text-transform:uppercase}
+.btn:active{background:var(--lit)}
+.btn.on{background:var(--fg);color:var(--bg);text-shadow:none;box-shadow:0 0 10px var(--glow)}
+.row{display:flex;flex-wrap:wrap;gap:8px}
+.row>.btn{flex:1 1 0}
+.seg{display:flex;flex:1 1 auto}
+.seg .btn{flex:1 1 0;min-width:0}
+.seg .btn+.btn{border-left:0}
+
+.genres{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.genres .btn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:8px 10px}
+.genres small{font-family:var(--f-body);font-size:10px;letter-spacing:.04em;opacity:.75;text-transform:uppercase}
+
+.defcon{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.defcon .btn{font-size:26px}
+.defcon .btn[data-v="2"].on{background:var(--amber);border-color:var(--amber);box-shadow:0 0 10px rgba(255,178,46,.5)}
+.defcon .btn[data-v="1"].on{background:var(--red);border-color:var(--red);box-shadow:0 0 12px rgba(255,74,61,.55)}
+
+.big{background:transparent;border:2px solid var(--fg);font-family:var(--f-display);font-size:30px;letter-spacing:.06em;
+  padding:14px 10px;cursor:pointer;box-shadow:0 0 14px var(--glow),inset 0 0 14px rgba(61,255,110,.12)}
+.big:active{background:var(--fg);color:var(--bg)}
+
+.transport{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.play{min-width:96px}
+.play.on{background:var(--amber);border-color:var(--amber)}
+.tempo{display:flex;align-items:center;gap:6px;font-family:var(--f-display);font-size:20px;font-variant-numeric:tabular-nums}
+.tempo b{font-weight:400;font-size:26px;min-width:3ch;display:inline-block;text-align:right}
+.sm{min-width:42px;padding:4px}
+.swing{display:flex;align-items:center;gap:8px;font-family:var(--f-display);font-size:18px;flex:1 1 160px}
+.swing b{font-weight:400;min-width:3.5ch;font-variant-numeric:tabular-nums}
+input[type=range]{flex:1;accent-color:var(--fg);min-width:80px}
+
+.pages{display:flex;gap:6px}
+.pages .btn{flex:1;font-size:18px;min-height:36px}
+.pages .btn.ph:not(.on){border-color:var(--amber);color:var(--amber)}
+
+/* step grid */
+.gridwrap{overflow-x:auto;padding-bottom:2px}
+.grid{display:grid;grid-template-columns:52px repeat(16,minmax(14px,1fr));gap:4px 2px;min-width:300px}
+.hdr{font-family:var(--f-display);font-size:14px;color:var(--line);text-align:center;font-variant-numeric:tabular-nums}
+.hdr.beat{color:var(--dim)}
+.tname{background:none;border:1px solid transparent;font-family:var(--f-display);font-size:17px;color:var(--dim);
+  text-align:left;padding:0 3px;cursor:pointer;line-height:1;position:relative;white-space:nowrap}
+.tname.sel{background:var(--fg);color:var(--bg);text-shadow:none}
+.tname i{font-style:normal;font-size:11px;color:var(--amber);position:absolute;top:-2px;right:1px}
+.tname.sel i{color:var(--bg)}
+.cell{height:32px;border:1px solid var(--line);background:var(--faint);padding:0;cursor:pointer;border-radius:2px}
+.cell.q{margin-left:3px}
+.cell.on{background:var(--fg);border-color:var(--fg);box-shadow:0 0 8px var(--glow)}
+.cell.ph{outline:2px solid var(--amber);outline-offset:-1px}
+.cell.on.ph{background:var(--amber);border-color:var(--amber)}
+
+.trackbar{border:1px dashed var(--line);padding:10px;display:flex;flex-direction:column;gap:8px}
+.trackbar .row .btn{font-size:18px;min-height:38px;padding:4px 6px}
+
+/* PO view */
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips .btn{flex:1 1 auto;font-size:18px;min-height:36px}
+.po{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:360px;width:100%;margin:0 auto}
+.pob{aspect-ratio:1;max-width:100%;border:2px solid var(--line);border-radius:8px;background:var(--faint);position:relative;
+  display:flex;align-items:center;justify-content:center;font-family:var(--f-display)}
+.pob .n{position:absolute;top:3px;left:7px;font-size:16px;color:var(--dim);font-variant-numeric:tabular-nums}
+.pob .s{font-size:44px;line-height:1}
+.pob.on{border-color:var(--fg);background:var(--lit);box-shadow:0 0 10px var(--glow)}
+.pob.ph{border-color:var(--amber)}
+.pob.on.ph .s{color:var(--amber)}
+.legend{font-size:11px;color:var(--dim);text-align:center;letter-spacing:.04em}
+.note{font-size:12px;color:var(--dim);margin:0}
+.note b{color:var(--amber);font-weight:600}
+.panel{border:1px solid var(--line);background:var(--panel);padding:12px;display:flex;flex-direction:column;gap:6px}
+.panel h3{font-family:var(--f-display);font-weight:400;font-size:20px;letter-spacing:.12em;margin:0;color:var(--fg)}
+.steps{font-family:var(--f-body);font-size:13px;display:grid;grid-template-columns:64px 1fr;gap:2px 8px;font-variant-numeric:tabular-nums}
+.steps span:nth-child(odd){color:var(--dim)}
+.strat{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:12.5px}
+textarea{width:100%;min-height:140px;background:var(--faint);color:var(--fg);border:1px solid var(--line);font-family:var(--f-body);font-size:12px;padding:8px}
+
+/* saved + guide */
+.saved{display:flex;flex-direction:column;gap:8px}
+.sitem{border:1px solid var(--line);padding:10px;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.sitem div{flex:1 1 160px;min-width:0}
+.sitem strong{font-family:var(--f-display);font-weight:400;font-size:20px;display:block}
+.sitem small{color:var(--dim);font-size:11px}
+.sitem .btn{font-size:18px;min-height:38px}
+.empty{color:var(--dim);border:1px dashed var(--line);padding:16px;margin:0}
+.guide h2{font-family:var(--f-display);font-weight:400;font-size:22px;letter-spacing:.1em;margin:0 0 4px}
+.guide p{margin:0 0 4px;color:#9dffb8;max-width:62ch}
+.guide section{border-left:2px solid var(--line);padding-left:12px}
+
+/* bottom nav */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:45;background:var(--bg);border-top:1px solid var(--dim);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.nav div{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding-block:8px}
+.nav .btn{font-size:18px;min-height:46px;padding:4px 2px;text-shadow:0 0 6px var(--glow)}
+.nav .btn.on{text-shadow:none}
+
+@media (prefers-reduced-motion:reduce){.crt,.console::after{animation:none}}
+</style>
+</head>
+<body>
+<div class="crt">
+  <header class="top">
+    <button id="back" class="tbtn" data-act="back" aria-label="Back">◄ BACK</button>
+    <div class="brand">WOPR<span>BEAT MACHINE</span></div>
+    <div class="hist" aria-label="Generation history">
+      <button class="tbtn" data-act="hprev" id="hPrev" aria-label="Previous generation">◄</button>
+      <span id="hPos">1/1</span>
+      <button class="tbtn" data-act="hnext" id="hNext" aria-label="Next generation">►</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="tab-machine" class="tab">
+      <p class="console" id="console">&gt; GREETINGS PROFESSOR FALKEN.</p>
+
+      <div><div class="lbl">STYLE</div><div class="genres" id="genres"></div></div>
+      <div><div class="lbl"><span>DEFCON</span><b id="defTxt"></b></div><div class="defcon" id="defcon"></div></div>
+      <div><div class="lbl">LENGTH · STEPS</div><div class="seg" id="lens"></div></div>
+
+      <button id="gen" class="big" data-act="gen">SHALL WE PLAY A GAME?</button>
+
+      <div class="row">
+        <button class="btn" data-act="vary">VARY</button>
+        <button class="btn" data-act="mkfill">FILL</button>
+        <button class="btn" data-act="save" id="saveBtn">SAVE</button>
+      </div>
+
+      <div class="transport">
+        <button class="btn play" id="play" data-act="play">RUN</button>
+        <div class="tempo">
+          <button class="btn sm" data-act="tdn" aria-label="Slower">−</button>
+          <span><b id="tempo">128</b> BPM</span>
+          <button class="btn sm" data-act="tup" aria-label="Faster">+</button>
+        </div>
+        <label class="swing" for="swing">SWING <input id="swing" type="range" min="0" max="60" step="2"> <b id="swingV"></b></label>
+      </div>
+
+      <div class="row">
+        <div class="seg" id="patSel"></div>
+        <button class="btn" id="chain" data-act="chain">CHAIN</button>
+      </div>
+      <div class="row"><div class="seg" id="hear"></div></div>
+
+      <div class="pages" id="pages"></div>
+      <div class="gridwrap"><div class="grid" id="grid"></div></div>
+      <div class="trackbar" id="trackbar"></div>
+    </section>
+
+    <section id="tab-po" class="tab" hidden>
+      <p class="console" id="poHead">&gt; PO-35 VIEW</p>
+      <div class="row"><div class="seg" id="patSelPo"></div></div>
+      <div class="pages" id="pagesPo"></div>
+      <div class="chips" id="chips"></div>
+      <div class="po" id="po"></div>
+      <p class="legend">K KICK · S SNARE · H C-HAT · O O-HAT · M METAL</p>
+      <p class="note" id="monoNote"></p>
+      <div class="panel"><h3 id="listHead">STEPS</h3><div class="steps" id="steps"></div></div>
+      <div class="panel" id="stratPanel"><h3>BUILD ORDER</h3><ol class="strat" id="strat"></ol></div>
+      <div class="row">
+        <button class="btn" data-act="copy" id="copyBtn">COPY STEPS</button>
+        <button class="btn" data-act="midi">MIDI FILE</button>
+      </div>
+      <textarea id="copyOut" readonly hidden aria-label="Steps as text"></textarea>
+      <p class="note" id="midiNote"></p>
+    </section>
+
+    <section id="tab-saved" class="tab" hidden>
+      <p class="console">&gt; SAVED PATTERNS</p>
+      <div class="saved" id="saved"></div>
+    </section>
+
+    <section id="tab-guide" class="tab guide" hidden>
+      <p class="console">&gt; HOW TO PLAY</p>
+      <section><h2>QUICK START</h2><p>Pick a style, set the DEFCON level and tap SHALL WE PLAY A GAME? Tap RUN to hear it. DEFCON 5 gives classic grooves; DEFCON 1 goes wild.</p></section>
+      <section><h2>SHAPE IT</h2><p>Tap any step to turn it on or off. Tap a sound name to select it, then LOCK it to keep it when you generate again, or SOLO it to hear it alone. VARY changes a few steps on the current pattern. The arrows at the top step back and forward through your recent generations.</p></section>
+      <section><h2>PLAY ALONG</h2><p>Select a sound and tap SOLO. Let it loop until you can feel it, then record it live on the PO. If it does not land, erase and try again.</p></section>
+      <section><h2>COPY TO THE PO</h2><p>The PO VIEW tab shows a 4x4 grid laid out like the PO buttons. MONO squeezes the pattern to one sound per step: kick wins, then snare, metal, open hat and closed hat. Tap a sound to see only its steps. Set HEAR to PO MONO to hear what will fit.</p></section>
+      <section><h2>LONG PATTERNS AND FILLS</h2><p>32, 48 and 64 steps become 2, 3 or 4 PO patterns. BUILD ORDER tells you which one to program first and what to change after copying it. Put the FILL in its own pattern and chain it after the groove. CHAIN plays the groove three times, then the fill.</p></section>
+      <section><h2>NO SOUND?</h2><p>Flip the iPhone silent switch off, then tap RUN again.</p></section>
+      <section><h2>MIDI</h2><p>MIDI FILE saves the main pattern as a .mid file for other apps and machines. Kick 36, snare 38, closed hat 42, open hat 46, metal 56, on channel 10. The download works from your own web address; Claude's preview blocks downloads.</p></section>
+    </section>
+  </main>
+
+  <nav class="nav" aria-label="Sections">
+    <div>
+      <button class="btn" data-act="tab" data-v="machine">MACHINE</button>
+      <button class="btn" data-act="tab" data-v="po">PO VIEW</button>
+      <button class="btn" data-act="tab" data-v="saved">SAVED</button>
+      <button class="btn" data-act="tab" data-v="guide">GUIDE</button>
+    </div>
+  </nav>
+</div>
+
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+
+const TRACKS = [
+  {id:'kick',  name:'KICK',  k:'K', note:36},
+  {id:'snare', name:'SNARE', k:'S', note:38},
+  {id:'chat',  name:'C-HAT', k:'H', note:42},
+  {id:'ohat',  name:'O-HAT', k:'O', note:46},
+  {id:'perc',  name:'METAL', k:'M', note:56},
+];
+const IDS = TRACKS.map(t => t.id);
+const NAME = Object.fromEntries(TRACKS.map(t => [t.id, t.name]));
+const KEY = Object.fromEntries(TRACKS.map(t => [t.id, t.k]));
+const MONO_ORDER = ['kick','snare','perc','ohat','chat'];
+
+const GENRES = {
+  bigbeat: {name:'BIG BEAT', sub:'Chemical Brothers · Prodigy', tempo:128, swing:12, wild:.8, tpl:{
+    kick: [1,0,.15,0, 0,0,0,.25, 0,0,.95,.45, 0,0,0,.1],
+    snare:[0,0,0,0, 1,0,0,.35, 0,.3,0,0, 1,0,0,.45],
+    chat: [.95,.25,.95,.25, .95,.25,.95,.25, .95,.25,.95,.25, .95,.25,.9,.25],
+    ohat: [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,.45,0],
+    perc: [0,0,0,.12, 0,0,.15,0, 0,0,0,0, 0,.2,0,0]}},
+  idm: {name:'IDM', sub:'Autechre · glitch', tempo:112, swing:0, wild:1.3, tpl:{
+    kick: [1,0,0,.35, 0,.4,0,0, .45,0,0,.3, 0,0,.4,0],
+    snare:[0,0,0,0, .9,0,0,.25, 0,0,.3,0, .7,.35,0,.3],
+    chat: [.5,.4,.3,.55, .4,.5,.3,.45, .5,.35,.4,.5, .3,.55,.45,.4],
+    ohat: [0,0,.15,0, 0,0,0,.2, 0,0,0,0, .2,0,0,0],
+    perc: [.2,0,.3,0, 0,.35,0,.2, 0,.3,0,0, .25,0,.3,.2]}},
+  industrial: {name:'INDUSTRIAL', sub:'Skinny Puppy · FLA · KMFDM · Ministry', tempo:124, swing:0, wild:.6, tpl:{
+    kick: [1,0,0,0, 1,0,0,0, 1,0,0,0, 1,0,0,.15],
+    snare:[0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
+    chat: [.1,.15,.95,.15, .1,.15,.95,.15, .1,.15,.95,.15, .1,.15,.95,.3],
+    ohat: [0,0,0,0, 0,0,0,.1, 0,0,0,0, 0,0,0,.1],
+    perc: [0,.15,0,.3, 0,.15,0,.3, 0,.15,0,.3, 0,.15,0,.3]}},
+  junk: {name:'JUNKYARD', sub:'Einstürzende Neubauten · metal', tempo:96, swing:8, wild:1.2, tpl:{
+    kick: [1,0,0,.3, 0,0,.5,0, 0,.4,0,0, .6,0,0,.3],
+    snare:[0,0,0,0, .5,0,0,0, 0,0,0,.3, .4,0,0,0],
+    chat: [.2,0,.2,0, .2,0,.2,0, .2,0,.2,0, .2,0,.2,0],
+    ohat: [0,0,0,.15, 0,0,0,0, 0,0,0,.15, 0,0,0,0],
+    perc: [.7,.2,.4,.5, .3,.6,.2,.4, .6,.3,.5,.2, .4,.5,.3,.6]}},
+};
+const DEF_TXT = {5:'CLASSIC', 4:'TWISTED', 3:'ADVENTUROUS', 2:'UNSTABLE', 1:'TOTAL CHAOS'};
+
+const S = {genre:'bigbeat', defcon:4, len:16, tempo:128, swing:12, main:null, fill:null, locks:{}};
+const ui = {tab:'machine', stack:[], page:0, editing:'main', sel:'kick', solo:{}, mono:false, chain:false, chip:'mono', confirmDel:null};
+
+const rnd = Math.random;
+const chaos = () => (5 - S.defcon) / 4;
+const blank = n => Object.fromEntries(IDS.map(id => [id, Array(n).fill(0)]));
+const clone = o => JSON.parse(JSON.stringify(o));
+const fit = (a, n) => Array.from({length:n}, (_, i) => a[i % a.length] || 0);
+const store = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch(e){ return false; } }
+};
+function log(msg){ $('#console').textContent = '> ' + msg; }
+
+/* ---------- generation ---------- */
+function pick(ids, w){
+  let tot = ids.reduce((s, id) => s + (w[id] || 1), 0), r = rnd() * tot;
+  for (const id of ids){ r -= (w[id] || 1); if (r <= 0) return id; }
+  return ids[ids.length - 1];
+}
+function genPage(){
+  const G = GENRES[S.genre], c = chaos(), out = {};
+  for (const id of IDS){
+    const tpl = G.tpl[id], a = [];
+    const tw = id === 'kick' ? .45 : id === 'snare' ? .5 : .7;
+    for (let i = 0; i < 16; i++){
+      const off = i % 2 ? .55 : (i % 4 === 2 ? .4 : .25);
+      const q = tpl[i] * (1 - .45 * c) + G.wild * c * off * tw;
+      a.push(rnd() < q ? 1 : 0);
+    }
+    if (c < .75 && tpl[0] >= .9) a[0] = 1;
+    if (c < .5) tpl.forEach((p, i) => { if (p >= .95) a[i] = 1; });
+    out[id] = a;
+  }
+  return out;
+}
+function mutate(P, count, lo, hi){
+  const ids = IDS.filter(id => !S.locks[id]);
+  if (!ids.length) return 0;
+  const W = {kick:1, snare:1.2, chat:2, ohat:.8, perc:1.6}, c = chaos(), tpl = GENRES[S.genre].tpl;
+  let done = 0, tries = 0;
+  while (done < count && tries < 150){
+    tries++;
+    const id = pick(ids, W), i = lo + Math.floor(rnd() * (hi - lo));
+    if (id === 'kick' && i % 16 === 0 && c < .75) continue;
+    const p = tpl[id][i % 16];
+    if (P[id][i]){ if (rnd() < .55 - p * .3 + c * .2){ P[id][i] = 0; done++; } }
+    else if (rnd() < p * .6 + .12 + c * .3){ P[id][i] = 1; done++; }
+  }
+  return done;
+}
+function turnaround(page, c){
+  for (let i = 12; i < 16; i++){
+    if (!S.locks.snare && rnd() < .35 + c * .3) page.snare[i] = 1;
+    if (page.snare[i] && !S.locks.chat && rnd() < .5) page.chat[i] = 0;
+  }
+}
+function makeFill(M){
+  const c = chaos(), f = {};
+  IDS.forEach(id => f[id] = M[id].slice(0, 16));
+  const start = c > .5 ? 4 : 8;
+  for (let i = start; i < 16; i++){
+    const ramp = (i - start + 1) / (16 - start);
+    if (!S.locks.snare) f.snare[i] = rnd() < .25 + ramp * .7 ? 1 : 0;
+    if (!S.locks.chat) f.chat[i] = 0;
+    if (!S.locks.ohat) f.ohat[i] = 0;
+    if (!S.locks.kick) f.kick[i] = ((i % 4 === 0 && rnd() < .6) || rnd() < c * .25) ? 1 : 0;
+    if (!S.locks.perc) f.perc[i] = rnd() < c * .35 * ramp ? 1 : 0;
+  }
+  if (!S.locks.snare) f.snare[15] = 1;
+  return f;
+}
+function generate(){
+  const c = chaos(), pages = S.len / 16, base = genPage(), M = blank(0);
+  for (let pg = 0; pg < pages; pg++){
+    const page = clone(base);
+    if (pg > 0) mutate(page, Math.round(1 + c * 3 + pg * .7), 0, 16);
+    if (pages > 1 && pg === pages - 1) turnaround(page, c);
+    IDS.forEach(id => M[id].push(...page[id]));
+  }
+  IDS.forEach(id => { if (S.locks[id] && S.main) M[id] = fit(S.main[id], S.len); });
+  S.main = M;
+  S.fill = makeFill(M);
+  if (ui.page >= pages) ui.page = 0;
+  pushHistory();
+  log(`${GENRES[S.genre].name} · DEFCON ${S.defcon} · ${S.len} STEPS`);
+  render();
+}
+function vary(){
+  const n = 2 + Math.round(chaos() * 4);
+  if (ui.editing === 'fill'){ mutate(S.fill, n, 0, 16); log('FILL VARIED'); }
+  else { mutate(S.main, n, ui.page * 16, ui.page * 16 + 16); log(`PATTERN ${ui.page + 1} VARIED`); }
+  pushHistory(); render();
+}
+function setLen(n){
+  if (n === S.len) return;
+  const c = chaos(), M = blank(0);
+  for (let pg = 0; pg < n / 16; pg++){
+    if (pg < S.len / 16){ IDS.forEach(id => M[id].push(...S.main[id].slice(pg * 16, pg * 16 + 16))); continue; }
+    const page = {};
+    IDS.forEach(id => page[id] = S.main[id].slice(0, 16));
+    mutate(page, Math.round(1 + c * 3 + pg * .7), 0, 16);
+    if (pg === n / 16 - 1) turnaround(page, c);
+    IDS.forEach(id => M[id].push(...page[id]));
+  }
+  S.len = n; S.main = M;
+  if (ui.page >= n / 16) ui.page = 0;
+  pushHistory(); log(`LENGTH ${n} STEPS`); render();
+}
+
+/* ---------- history ---------- */
+let H = [], hi = -1;
+const snap = () => JSON.stringify({genre:S.genre, defcon:S.defcon, len:S.len, tempo:S.tempo, swing:S.swing, main:S.main, fill:S.fill});
+function pushHistory(){ H = H.slice(0, hi + 1); H.push(snap()); if (H.length > 40) H.shift(); hi = H.length - 1; }
+function touchHistory(){ if (hi >= 0) H[hi] = snap(); }
+function restore(j){ Object.assign(S, JSON.parse(j)); if (ui.page >= S.len / 16) ui.page = 0; render(); }
+
+/* ---------- audio ---------- */
+let AC = null, master = null, noiseBuf = null;
+function audio(){
+  if (!AC){
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+    const comp = AC.createDynamicsCompressor();
+    master = AC.createGain(); master.gain.value = .8;
+    master.connect(comp); comp.connect(AC.destination);
+    noiseBuf = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  if (AC.state === 'suspended') AC.resume();
+  return AC;
+}
+function env(g, t, v, dur){ g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.001, t + dur); }
+function noise(t, dur, type, freq, q, v){
+  const s = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+  s.buffer = noiseBuf; f.type = type; f.frequency.value = freq; if (q) f.Q.value = q;
+  env(g, t, v, dur);
+  s.connect(f); f.connect(g); g.connect(master);
+  s.start(t); s.stop(t + dur + .03);
+}
+function tone(t, type, f0, f1, dur, v){
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur * .4);
+  env(g, t, v, dur);
+  o.connect(g); g.connect(master);
+  o.start(t); o.stop(t + dur + .03);
+}
+const VOICE = {
+  kick:  t => { tone(t, 'sine', 160, 42, .4, 1); noise(t, .012, 'lowpass', 3000, 0, .3); },
+  snare: t => { noise(t, .22, 'highpass', 1200, 0, .65); tone(t, 'triangle', 200, 160, .12, .4); },
+  chat:  t => noise(t, .05, 'highpass', 7500, 0, .32),
+  ohat:  t => noise(t, .32, 'highpass', 7000, 0, .28),
+  perc:  t => {
+    const f = AC.createBiquadFilter(), g = AC.createGain();
+    f.type = 'bandpass'; f.frequency.value = 2400; f.Q.value = 3;
+    env(g, t, .5, .2); f.connect(g); g.connect(master);
+    [540, 800, 1170].forEach(fr => { const o = AC.createOscillator(); o.type = 'square'; o.frequency.value = fr; o.connect(f); o.start(t); o.stop(t + .22); });
+  },
+};
+function monoAt(P, i){ for (const id of MONO_ORDER) if (P[id][i]) return id; return null; }
+
+let playing = false, timer = null, nextT = 0, gstep = 0, vq = [], cur = null;
+const stepDur = () => 60 / S.tempo / 4;
+const cycleLen = () => ui.chain ? S.len * 3 + 16 : (ui.editing === 'fill' ? 16 : S.len);
+function source(n){
+  if (ui.chain){ const m = S.len * 3; return n < m ? {pat:'main', idx:n % S.len} : {pat:'fill', idx:n - m}; }
+  return ui.editing === 'fill' ? {pat:'fill', idx:n % 16} : {pat:'main', idx:n % S.len};
+}
+function playStep(pat, idx, t){
+  const P = S[pat];
+  let hits = IDS.filter(id => P[id][idx]);
+  if (IDS.some(id => ui.solo[id])) hits = hits.filter(id => ui.solo[id]);
+  if (ui.mono && hits.length){ const id = MONO_ORDER.find(m => hits.includes(m)); hits = [id]; }
+  hits.forEach(id => VOICE[id](t));
+}
+function tick(){
+  while (nextT < AC.currentTime + .12){
+    const src = source(gstep % cycleLen());
+    const t = nextT + (src.idx % 2 ? stepDur() * S.swing / 100 * .6 : 0);
+    playStep(src.pat, src.idx, t);
+    vq.push({t, pat:src.pat, idx:src.idx});
+    nextT += stepDur(); gstep++;
+  }
+}
+function draw(){
+  if (!playing) return;
+  let changed = false;
+  while (vq.length && vq[0].t <= AC.currentTime){ cur = vq.shift(); changed = true; }
+  if (changed) mark();
+  requestAnimationFrame(draw);
+}
+function mark(){
+  $$('.ph').forEach(e => e.classList.remove('ph'));
+  if (!cur) return;
+  $$(`[data-pat="${cur.pat}"][data-idx="${cur.idx}"]`).forEach(e => e.classList.add('ph'));
+  if (cur.pat === 'main') $$(`[data-act="page"][data-v="${Math.floor(cur.idx / 16)}"]`).forEach(e => e.classList.add('ph'));
+}
+function start(){
+  audio(); playing = true; gstep = 0; vq = []; nextT = AC.currentTime + .06;
+  timer = setInterval(tick, 25); tick(); requestAnimationFrame(draw);
+  log('RUNNING'); render();
+}
+function stop(){ playing = false; clearInterval(timer); vq = []; cur = null; mark(); log('HALTED'); render(); }
+
+/* ---------- text, strategy, midi ---------- */
+function pageCount(){ return ui.editing === 'fill' ? 1 : S.len / 16; }
+function stepsOf(P, id, lo){ const r = []; for (let i = 0; i < 16; i++) if (P[id][lo + i]) r.push(i + 1); return r; }
+function monoLine(P, lo){ const r = []; for (let i = 0; i < 16; i++){ const id = monoAt(P, lo + i); if (id) r.push((i + 1) + KEY[id]); } return r; }
+function strategy(){
+  const pages = S.len / 16;
+  if (ui.editing === 'fill' || pages < 2) return null;
+  const mono = Array.from({length:pages}, (_, p) => Array.from({length:16}, (_, i) => monoAt(S.main, p * 16 + i)));
+  const count = mono.map(a => a.filter(Boolean).length);
+  const full = count.indexOf(Math.max(...count));
+  const L = id => id ? KEY[id] : '–';
+  const out = [`Program pattern ${full + 1} first. It has the most hits (${count[full]}).`];
+  for (let p = 0; p < pages; p++){
+    if (p === full) continue;
+    const d = [];
+    for (let i = 0; i < 16; i++) if (mono[p][i] !== mono[full][i]) d.push(`${i + 1}: ${L(mono[full][i])}→${L(mono[p][i])}`);
+    out.push(d.length ? `Pattern ${p + 1}: copy ${full + 1}, then change ${d.length} step${d.length > 1 ? 's' : ''}. ${d.join(' · ')}`
+                      : `Pattern ${p + 1}: copy ${full + 1}. No changes.`);
+  }
+  out.push(`Chain patterns 1 to ${pages} in order. Put the fill in its own pattern after them.`);
+  return out;
+}
+function allText(){
+  const G = GENRES[S.genre];
+  let s = `WOPR BEAT · ${G.name} · DEFCON ${S.defcon} · ${S.tempo} BPM · ${S.len} STEPS\n`;
+  const block = (P, lo, title) => {
+    s += `\n${title}\n`;
+    IDS.forEach(id => { const st = stepsOf(P, id, lo); if (st.length) s += `${NAME[id].padEnd(6)} ${st.join(' ')}\n`; });
+    s += `PO MONO ${monoLine(P, lo).join(' ')}\n`;
+  };
+  for (let p = 0; p < S.len / 16; p++) block(S.main, p * 16, `PATTERN ${p + 1}`);
+  block(S.fill, 0, 'FILL');
+  return s;
+}
+function vlq(n){ const b = [n & 127]; while ((n >>= 7)) b.unshift((n & 127) | 128); return b; }
+function midiBytes(){
+  const st = 24, ev = [];
+  for (let i = 0; i < S.len; i++) TRACKS.forEach(t => { if (S.main[t.id][i]){ ev.push({tick:i * st, on:1, note:t.note}, {tick:i * st + 12, on:0, note:t.note}); } });
+  ev.sort((a, b) => a.tick - b.tick || a.on - b.on);
+  const mpq = Math.round(60000000 / S.tempo);
+  let trk = [0, 0xFF, 0x51, 3, (mpq >> 16) & 255, (mpq >> 8) & 255, mpq & 255], last = 0;
+  ev.forEach(e => { trk.push(...vlq(e.tick - last), e.on ? 0x99 : 0x89, e.note, e.on ? 100 : 0); last = e.tick; });
+  trk.push(...vlq(S.len * st - last), 0xFF, 0x2F, 0);
+  const n = trk.length;
+  return new Uint8Array([0x4D,0x54,0x68,0x64, 0,0,0,6, 0,0, 0,1, 0,96, 0x4D,0x54,0x72,0x6B, (n>>>24)&255,(n>>16)&255,(n>>8)&255,n&255, ...trk]);
+}
+
+/* ---------- render ---------- */
+function segBtns(act, items, curV){ return items.map(([v, label]) => `<button class="btn${String(v) === String(curV) ? ' on' : ''}" data-act="${act}" data-v="${v}">${label}</button>`).join(''); }
+function pageTabs(){
+  if (ui.editing === 'fill' || S.len === 16) return '';
+  return Array.from({length:S.len / 16}, (_, p) => `<button class="btn${p === ui.page ? ' on' : ''}" data-act="page" data-v="${p}">PATTERN ${p + 1}</button>`).join('');
+}
+function renderMachine(){
+  $('#genres').innerHTML = Object.entries(GENRES).map(([k, g]) =>
+    `<button class="btn${S.genre === k ? ' on' : ''}" data-act="genre" data-v="${k}">${g.name}<small>${g.sub}</small></button>`).join('');
+  $('#defcon').innerHTML = [5,4,3,2,1].map(n => `<button class="btn${S.defcon === n ? ' on' : ''}" data-act="defcon" data-v="${n}" aria-label="DEFCON ${n}">${n}</button>`).join('');
+  $('#defTxt').textContent = DEF_TXT[S.defcon];
+  $('#lens').innerHTML = segBtns('len', [[16,'16'],[32,'32'],[48,'48'],[64,'64']], S.len);
+  $('#tempo').textContent = S.tempo;
+  $('#swing').value = S.swing; $('#swingV').textContent = S.swing + '%';
+  $('#play').textContent = playing ? 'HALT' : 'RUN'; $('#play').classList.toggle('on', playing);
+  $('#patSel').innerHTML = segBtns('pat', [['main','MAIN'],['fill','FILL']], ui.editing);
+  $('#chain').classList.toggle('on', ui.chain);
+  $('#hear').innerHTML = segBtns('hear', [['full','HEAR FULL'],['mono','HEAR PO MONO']], ui.mono ? 'mono' : 'full');
+  const pt = pageTabs(); $('#pages').innerHTML = pt; $('#pages').hidden = !pt;
+
+  const P = S[ui.editing], off = ui.editing === 'fill' ? 0 : ui.page * 16;
+  let h = '<div></div>';
+  for (let i = 0; i < 16; i++) h += `<div class="hdr${i % 4 === 0 ? ' beat' : ''}">${i + 1}</div>`;
+  for (const t of TRACKS){
+    const flags = (S.locks[t.id] ? 'L' : '') + (ui.solo[t.id] ? 'S' : '');
+    h += `<button class="tname${ui.sel === t.id ? ' sel' : ''}" data-act="tsel" data-v="${t.id}">${t.name}${flags ? `<i>${flags}</i>` : ''}</button>`;
+    for (let i = 0; i < 16; i++){
+      const idx = off + i;
+      h += `<button class="cell${P[t.id][idx] ? ' on' : ''}${i % 4 === 0 && i ? ' q' : ''}" data-act="cell" data-t="${t.id}" data-v="${idx}" data-pat="${ui.editing}" data-idx="${idx}" aria-label="${t.name} step ${i + 1}"></button>`;
+    }
+  }
+  $('#grid').innerHTML = h;
+
+  const s = ui.sel;
+  $('#trackbar').innerHTML = `
+    <div class="lbl"><span>${NAME[s]}${ui.editing === 'fill' ? ' · FILL' : S.len > 16 ? ' · PATTERN ' + (ui.page + 1) : ''}</span><b>${stepsOf(P, s, off).join(' ') || 'NO STEPS'}</b></div>
+    <div class="row">
+      <button class="btn${S.locks[s] ? ' on' : ''}" data-act="lock">LOCK</button>
+      <button class="btn${ui.solo[s] ? ' on' : ''}" data-act="solo">SOLO</button>
+      <button class="btn" data-act="shl" aria-label="Shift left">◄</button>
+      <button class="btn" data-act="shr" aria-label="Shift right">►</button>
+      <button class="btn" data-act="flip">FLIP</button>
+      <button class="btn" data-act="clr">CLEAR</button>
+    </div>`;
+}
+function renderPO(){
+  const P = S[ui.editing], off = ui.editing === 'fill' ? 0 : ui.page * 16;
+  $('#poHead').textContent = `> PO-35 VIEW · ${ui.editing === 'fill' ? 'FILL' : 'PATTERN ' + (ui.page + 1) + ' OF ' + S.len / 16}`;
+  $('#patSelPo').innerHTML = segBtns('pat', [['main','MAIN'],['fill','FILL']], ui.editing);
+  const pt = pageTabs(); $('#pagesPo').innerHTML = pt; $('#pagesPo').hidden = !pt;
+  $('#chips').innerHTML = segBtns('chip', [['mono','MONO'], ...TRACKS.map(t => [t.id, t.name])], ui.chip);
+
+  let h = '', dropped = 0;
+  for (let i = 0; i < 16; i++){
+    const idx = off + i;
+    const n = IDS.filter(id => P[id][idx]).length; if (n > 1) dropped += n - 1;
+    const id = ui.chip === 'mono' ? monoAt(P, idx) : (P[ui.chip][idx] ? ui.chip : null);
+    h += `<div class="pob${id ? ' on' : ''}" data-pat="${ui.editing}" data-idx="${idx}"><span class="n">${i + 1}</span><span class="s">${id ? KEY[id] : ''}</span></div>`;
+  }
+  $('#po').innerHTML = h;
+  $('#monoNote').innerHTML = ui.chip === 'mono'
+    ? (dropped ? `The PO plays one sound per step, so <b>${dropped} hit${dropped > 1 ? 's' : ''}</b> on shared steps ${dropped > 1 ? 'are' : 'is'} left out here. Kick wins, then snare, metal, open hat, closed hat.` : 'Every hit fits. No shared steps on this pattern.')
+    : `Showing only ${NAME[ui.chip]}. Enter these steps, then pick the next sound.`;
+
+  $('#listHead').textContent = ui.editing === 'fill' ? 'FILL STEPS' : `PATTERN ${ui.page + 1} STEPS`;
+  let s = '';
+  IDS.forEach(id => { const st = stepsOf(P, id, off); s += `<span>${NAME[id]}</span><span>${st.join(' ') || '–'}</span>`; });
+  s += `<span>MONO</span><span>${monoLine(P, off).join(' ') || '–'}</span>`;
+  $('#steps').innerHTML = s;
+
+  const strat = strategy();
+  $('#stratPanel').hidden = !strat;
+  if (strat) $('#strat').innerHTML = strat.map(l => `<li>${l}</li>`).join('');
+}
+function renderSaved(){
+  const list = store.get('wopr.saved', []);
+  $('#saved').innerHTML = list.length ? list.map(it => `
+    <div class="sitem">
+      <div><strong>${it.name}</strong><small>${it.date}</small></div>
+      <button class="btn" data-act="load" data-v="${it.id}">LOAD</button>
+      <button class="btn" data-act="del" data-v="${it.id}">${ui.confirmDel === it.id ? 'CONFIRM' : 'DELETE'}</button>
+    </div>`).join('')
+    : '<p class="empty">No saved patterns yet. Tap SAVE on the MACHINE tab when a beat grabs you.</p>';
+}
+function renderTabs(){
+  ['machine','po','saved','guide'].forEach(t => $('#tab-' + t).hidden = ui.tab !== t);
+  $$('.nav .btn').forEach(b => b.classList.toggle('on', b.dataset.v === ui.tab));
+  $('#back').disabled = !ui.stack.length;
+  $('#hPos').textContent = `${hi + 1}/${H.length}`;
+  $('#hPrev').disabled = hi <= 0; $('#hNext').disabled = hi >= H.length - 1;
+}
+function render(){ renderMachine(); renderPO(); renderSaved(); renderTabs(); mark(); }
+
+/* ---------- actions ---------- */
+function rotate(a, lo, dir){ const seg = a.slice(lo, lo + 16); const r = dir > 0 ? [seg[15], ...seg.slice(0, 15)] : [...seg.slice(1), seg[0]]; a.splice(lo, 16, ...r); }
+const off = () => ui.editing === 'fill' ? 0 : ui.page * 16;
+const A = {
+  genre(v){ S.genre = v; S.tempo = GENRES[v].tempo; S.swing = GENRES[v].swing; generate(); },
+  defcon(v){ S.defcon = +v; log(`DEFCON ${v} · ${DEF_TXT[v]}`); render(); },
+  len(v){ setLen(+v); },
+  gen(){ generate(); },
+  vary(){ vary(); },
+  mkfill(){ S.fill = makeFill(S.main); ui.editing = 'fill'; pushHistory(); log('FILL GENERATED'); render(); },
+  save(){
+    const list = store.get('wopr.saved', []), d = new Date();
+    const name = `${GENRES[S.genre].name} · D${S.defcon} · ${S.len}`;
+    list.unshift({id:String(d.getTime()), name, date:d.toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) + ` · ${S.tempo} BPM`, data:snap()});
+    log(store.set('wopr.saved', list.slice(0, 100)) ? 'SAVED TO THIS DEVICE' : 'SAVE FAILED: THIS BROWSER IS BLOCKING STORAGE');
+    render();
+  },
+  play(){ playing ? stop() : start(); },
+  tdn(){ S.tempo = Math.max(60, S.tempo - 2); touchHistory(); render(); },
+  tup(){ S.tempo = Math.min(200, S.tempo + 2); touchHistory(); render(); },
+  pat(v){ ui.editing = v; render(); },
+  chain(){ ui.chain = !ui.chain; log(ui.chain ? 'CHAIN: GROOVE X3, THEN FILL' : 'CHAIN OFF'); render(); },
+  hear(v){ ui.mono = v === 'mono'; log(ui.mono ? 'HEARING PO MONO' : 'HEARING FULL KIT'); render(); },
+  page(v){ ui.page = +v; render(); },
+  cell(v, b){
+    const id = b.dataset.t, i = +v, P = S[ui.editing];
+    P[id][i] = P[id][i] ? 0 : 1;
+    if (P[id][i]){ try { audio(); VOICE[id](AC.currentTime + .01); } catch(e){} }
+    touchHistory(); render();
+  },
+  tsel(v){ ui.sel = v; render(); },
+  lock(){ S.locks[ui.sel] = !S.locks[ui.sel]; render(); },
+  solo(){ ui.solo[ui.sel] = !ui.solo[ui.sel]; render(); },
+  shl(){ rotate(S[ui.editing][ui.sel], off(), -1); touchHistory(); render(); },
+  shr(){ rotate(S[ui.editing][ui.sel], off(), 1); touchHistory(); render(); },
+  flip(){ const a = S[ui.editing][ui.sel], o = off(); a.splice(o, 16, ...a.slice(o, o + 16).reverse()); touchHistory(); render(); },
+  clr(){ const a = S[ui.editing][ui.sel], o = off(); a.fill(0, o, o + 16); touchHistory(); render(); },
+  chip(v){ ui.chip = v; render(); },
+  tab(v){ if (v !== ui.tab){ ui.stack.push(ui.tab); if (ui.stack.length > 30) ui.stack.shift(); ui.tab = v; } ui.confirmDel = null; render(); window.scrollTo(0, 0); },
+  back(){ if (ui.stack.length){ ui.tab = ui.stack.pop(); render(); window.scrollTo(0, 0); } },
+  hprev(){ if (hi > 0){ hi--; restore(H[hi]); log(`HISTORY ${hi + 1} OF ${H.length}`); } },
+  hnext(){ if (hi < H.length - 1){ hi++; restore(H[hi]); log(`HISTORY ${hi + 1} OF ${H.length}`); } },
+  copy(v, b){
+    const txt = allText(), out = $('#copyOut');
+    const fallback = () => { out.hidden = false; out.value = txt; out.focus(); out.select(); b.textContent = 'SELECT + COPY BELOW'; };
+    try { navigator.clipboard.writeText(txt).then(() => { b.textContent = 'COPIED'; setTimeout(() => b.textContent = 'COPY STEPS', 1500); }, fallback); }
+    catch(e){ fallback(); }
+  },
+  midi(){
+    try {
+      const blob = new Blob([midiBytes()], {type:'audio/midi'}), url = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = url; a.download = `wopr-${S.genre}-d${S.defcon}-${S.len}steps.mid`; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      $('#midiNote').textContent = 'If nothing downloaded, open the app from your own web address. Claude\'s preview blocks downloads.';
+    } catch(e){ $('#midiNote').textContent = 'MIDI export failed in this browser.'; }
+  },
+  load(v){ const it = store.get('wopr.saved', []).find(x => x.id === v); if (!it) return; restore(it.data); pushHistory(); log('LOADED ' + it.name); A.tab('machine'); },
+  del(v){
+    if (ui.confirmDel !== v){ ui.confirmDel = v; renderSaved(); return; }
+    store.set('wopr.saved', store.get('wopr.saved', []).filter(x => x.id !== v)); ui.confirmDel = null; renderSaved();
+  },
+};
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]');
+  if (!b || b.disabled) return;
+  const f = A[b.dataset.act]; if (f) f(b.dataset.v, b);
+});
+$('#swing').addEventListener('input', e => { S.swing = +e.target.value; $('#swingV').textContent = S.swing + '%'; touchHistory(); });
+
+generate();
+log('GREETINGS PROFESSOR FALKEN.');
+})();
+</script>
+</body>
+</html>
