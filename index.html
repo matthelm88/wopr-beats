@@ -59,7 +59,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 
 /* middle: the measuring box for every row below */
 .mid{flex:1;min-height:0;overflow:hidden;container-type:size;padding-block:1.2cqh}
-.tab{height:100%;display:flex;flex-direction:column;gap:1.25cqh;min-height:0}
+.tab{height:100%;display:flex;flex-direction:column;gap:1cqh;min-height:0}
 .tab.scroll{overflow-y:auto;overscroll-behavior:contain;-webkit-user-select:text;user-select:text}
 .tab>*{flex:none}
 .console{font-family:var(--f-display);font-size:clamp(14px,3.3cqh,24px);line-height:1;height:3.6cqh;margin:0;
@@ -83,10 +83,10 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .defcon .btn[data-v="2"].on{background:var(--amber);border-color:var(--amber);box-shadow:0 0 10px rgba(255,178,46,.5)}
 .defcon .btn[data-v="1"].on{background:var(--red);border-color:var(--red);box-shadow:0 0 12px rgba(255,74,61,.55)}
 
-.big{height:9.4cqh;background:transparent;border:2px solid var(--fg);font-family:var(--f-display);font-size:clamp(18px,4.6cqh,32px);letter-spacing:.05em;
+.big{height:7.6cqh;background:transparent;border:2px solid var(--fg);font-family:var(--f-display);font-size:clamp(18px,4.6cqh,32px);letter-spacing:.05em;
   cursor:pointer;display:flex;align-items:center;justify-content:center;gap:12px;box-shadow:0 0 14px var(--glow),inset 0 0 14px rgba(61,255,110,.12)}
 .big:active{background:var(--fg);color:var(--bg)}
-.big .die{width:5.6cqh;height:5.6cqh}
+.big .die{width:5cqh;height:5cqh}
 .bigtxt{display:flex;flex-direction:column;align-items:flex-start;line-height:.9}
 .bigtxt small{font-size:.48em;letter-spacing:.12em;opacity:.75}
 
@@ -176,6 +176,40 @@ textarea{width:100%;min-height:140px;background:var(--faint);color:var(--fg);bor
 .navtabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;height:36px}
 .navtabs .btn{font-size:17px;padding:0 2px}
 
+/* compact settings row: tap to change */
+.cyc{flex-direction:column;gap:0;line-height:.95}
+.cyc small{font-size:.58em;letter-spacing:.14em;opacity:.7}
+.cyc.on small{opacity:.8}
+
+/* overview of all five sounds (tap a row to pick the sound to edit) */
+.mini{height:12.5cqh;display:grid;grid-template-columns:54px repeat(16,minmax(0,1fr));grid-template-rows:repeat(5,minmax(0,1fr));gap:2px}
+.mlabel{font-family:var(--f-display);font-size:clamp(11px,2.3cqh,16px);line-height:1;color:var(--dim);background:none;border:1px solid transparent;
+  text-align:left;padding:0 3px;cursor:pointer;white-space:nowrap;position:relative;display:flex;align-items:center;min-height:0}
+.mlabel.sel{background:var(--fg);color:var(--bg);text-shadow:none}
+.mlabel i{font-style:normal;font-size:9px;color:var(--amber);position:absolute;top:0;right:2px}
+.mlabel.sel i{color:var(--bg)}
+.mc{background:var(--faint);border-radius:1px;cursor:pointer;min-height:0}
+.mc.q{margin-left:2px}
+.mc.on{background:var(--dim)}
+.mc.selrow{outline:1px solid var(--line)}
+.mc.selrow.on{background:var(--fg)}
+.mc.ph{background:var(--amber)!important}
+
+/* big 4x4 pads for the selected sound, laid out like the PO buttons */
+.padwrap{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:.6cqh}
+.padhead{display:flex;justify-content:space-between;font-family:var(--f-display);font-size:clamp(12px,2.4cqh,17px);color:var(--dim);letter-spacing:.08em;line-height:1}
+.padhead b{color:var(--fg);font-weight:400}
+.pads{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,1fr);gap:1.2cqh 8px}
+.pad{position:relative;border:2px solid var(--line);border-radius:8px;background:var(--faint);cursor:pointer;padding:0;min-height:0;min-width:0;
+  font-family:var(--f-display);display:flex;align-items:center;justify-content:center}
+.pad .n{position:absolute;top:3px;left:7px;font-size:clamp(12px,2.2cqh,17px);color:var(--dim);font-variant-numeric:tabular-nums}
+.pad .s{font-size:clamp(18px,5cqh,34px);line-height:1}
+.pad.on{background:var(--fg);border-color:var(--fg);color:var(--bg);text-shadow:none;box-shadow:0 0 12px var(--glow)}
+.pad.on .n{color:var(--bg)}
+.pad.ph{border-color:var(--amber)}
+.pad.on.ph{background:var(--amber)}
+.ico{width:28px;height:28px;display:block}
+
 @media (prefers-reduced-motion:reduce){.app,.console::after,.die.roll{animation:none}}
 </style>
 </head>
@@ -194,18 +228,17 @@ textarea{width:100%;min-height:140px;background:var(--faint);color:var(--fg);bor
   <main class="mid" id="mid">
     <section id="tab-machine" class="tab">
       <p class="console" id="console">&gt; GREETINGS PROFESSOR FALKEN.</p>
-      <div class="seg" id="genres"></div>
+      <div class="row" id="setrow"></div>
       <div class="row"><span class="rl">DEFCON<b id="defTxt"></b></span><div class="seg defcon" id="defcon"></div></div>
-      <div class="row"><span class="rl">STEPS</span><div class="seg" id="lens"></div></div>
       <button id="gen" class="big" data-act="gen"></button>
       <div class="row" id="actions"></div>
-      <div class="row">
-        <div class="seg" id="hear"></div>
-        <label class="swing" for="swing">SWING <input id="swing" type="range" min="0" max="60" step="2"> <b id="swingV"></b></label>
-      </div>
       <div class="pages" id="pages"></div>
-      <div class="grid" id="grid"></div>
+      <div class="mini" id="mini" aria-label="All sounds overview"></div>
       <div class="row trackbar" id="trackbar"></div>
+      <div class="padwrap">
+        <div class="padhead"><span>EDITING <b id="padName">KICK</b></span><span id="padInfo"></span></div>
+        <div class="pads" id="pads"></div>
+      </div>
     </section>
 
     <section id="tab-po" class="tab" hidden>
@@ -235,9 +268,9 @@ textarea{width:100%;min-height:140px;background:var(--faint);color:var(--fg);bor
 
     <section id="tab-guide" class="tab scroll guide" hidden>
       <p class="console">&gt; HOW TO PLAY</p>
-      <section><h2>QUICK START</h2><p>Pick a style, set DEFCON and tap NEW BEAT. Tap RUN at the bottom to hear it. DEFCON 5 gives classic grooves; DEFCON 1 goes wild. Every button with a die is a roll: tap it again for a new result.</p></section>
+      <section><h2>QUICK START</h2><p>Tap STYLE to change style, set DEFCON and tap NEW BEAT. Tap the play button at the bottom to hear it; tap again to pause. DEFCON 5 gives classic grooves; DEFCON 1 goes wild. Every button with a die is a roll: tap it again for a new result.</p></section>
       <section><h2>STYLES</h2><p>BIG BEAT: Chemical Brothers, Prodigy. IDM: Autechre and glitch. INDUSTRIAL: Skinny Puppy, Front Line Assembly, KMFDM, Ministry. JUNKYARD: Einstürzende Neubauten metal percussion.</p></section>
-      <section><h2>SHAPE IT</h2><p>Tap any step to turn it on or off. Tap a sound name to select it, then LOCK it to keep it through new rolls, or SOLO it to hear it alone. NEW BEAT throws everything out and rolls a whole new beat across every pattern. TWEAK keeps your beat and changes only a few steps on the pattern you are looking at. The arrows at the top step back and forward through your recent results.</p></section>
+      <section><h2>SHAPE IT</h2><p>The small grid shows all five sounds. Tap a row to pick a sound, then tap the big 4x4 pads (laid out like the PO buttons) to turn its steps on or off. With a sound picked, then LOCK it to keep it through new rolls, or SOLO it to hear it alone. NEW BEAT throws everything out and rolls a whole new beat across every pattern. TWEAK keeps your beat and changes only a few steps on the pattern you are looking at. The arrows at the top step back and forward through your recent results.</p></section>
       <section><h2>FILLS</h2><p>Pick a pattern tab, then tap FILL. The second half of that pattern turns into a fill. Keep tapping FILL to roll new fills on that pattern only. UNFILL puts the original groove back. On a 16-step loop, FILL adds Pattern 2 for the fill.</p></section>
       <section><h2>PLAY ALONG</h2><p>On PO VIEW, tap a sound, then SOLO IN MONO. It loops only the steps that fit on the PO for that sound. Learn it by ear, record it live, then tap the next sound and the solo follows.</p></section>
       <section><h2>COPY TO THE PO</h2><p>PO VIEW shows a 4x4 grid laid out like the PO buttons. MONO squeezes the pattern to one sound per step: kick wins, then snare, metal, open hat and closed hat. Set HEAR to MONO to hear what will fit. BUILD ORDER tells you which pattern to program first and what to change after copying it.</p></section>
@@ -249,7 +282,7 @@ textarea{width:100%;min-height:140px;background:var(--faint);color:var(--fg);bor
 
   <nav class="nav" aria-label="Transport and sections">
     <div class="runbar">
-      <button class="btn play" id="play" data-act="play">RUN</button>
+      <button class="btn play" id="play" data-act="play" aria-label="Play"></button>
       <span class="runstat" id="runStat"></span>
       <div class="tempo">
         <button class="btn" data-act="tdn" aria-label="Slower">−</button>
@@ -519,11 +552,11 @@ function mark(){
   $$(`[data-act="page"][data-v="${Math.floor(cur.idx / 16)}"]`).forEach(e => e.classList.add('ph'));
 }
 function start(){
-  audio(); playing = true; gstep = 0; vq = []; nextT = AC.currentTime + .06;
+  audio(); playing = true; vq = []; nextT = AC.currentTime + .06;
   timer = setInterval(tick, 25); tick(); requestAnimationFrame(draw);
-  log('RUNNING'); render();
+  log('PLAYING'); render();
 }
-function stop(){ playing = false; clearInterval(timer); vq = []; cur = null; mark(); log('HALTED'); render(); }
+function stop(){ playing = false; clearInterval(timer); vq = []; if (cur) gstep = cur.idx + 1; cur = null; mark(); log('PAUSED'); render(); }
 
 /* ---------- text, strategy, midi ---------- */
 function stepsOf(P, id, lo){ const r = []; for (let i = 0; i < 16; i++) if (P[id][lo + i]) r.push(i + 1); return r; }
@@ -581,10 +614,14 @@ function pageTabs(){
     + `<button class="btn follow${ui.follow ? ' on' : ''}" data-act="follow" aria-pressed="${ui.follow}">FOLLOW</button>`;
 }
 function renderMachine(){
-  $('#genres').innerHTML = segBtns('genre', Object.entries(GENRES).map(([k, g]) => [k, g.name]), S.genre);
+  const sw = S.swing;
+  $('#setrow').innerHTML =
+      `<button class="btn cyc" data-act="cstyle" aria-label="Style ${GENRES[S.genre].name}, tap for next style"><small>STYLE</small>${GENRES[S.genre].name}</button>`
+    + `<button class="btn cyc" data-act="csteps" aria-label="${S.len} steps, tap to change"><small>STEPS</small>${S.len}</button>`
+    + `<button class="btn cyc" data-act="cswing" aria-label="Swing ${sw} percent, tap to change"><small>SWING</small>${sw}%</button>`
+    + `<button class="btn cyc${ui.mono ? ' on' : ''}" data-act="chear" aria-label="Hear ${ui.mono ? 'PO mono' : 'full kit'}, tap to switch"><small>HEAR</small>${ui.mono ? 'PO MONO' : 'FULL'}</button>`;
   $('#defcon').innerHTML = [5,4,3,2,1].map(n => `<button class="btn${S.defcon === n ? ' on' : ''}" data-act="defcon" data-v="${n}" aria-label="DEFCON ${n}">${n}</button>`).join('');
   $('#defTxt').textContent = DEF_TXT[S.defcon];
-  $('#lens').innerHTML = segBtns('len', [[16,'16'],[32,'32'],[48,'48'],[64,'64']], S.len);
   $('#gen').innerHTML = dieSVG('gen') + '<span class="bigtxt">NEW BEAT<small>SHALL WE PLAY A GAME?</small></span>';
   $('#gen').setAttribute('aria-label', 'New beat: roll a whole new pattern');
 
@@ -595,23 +632,19 @@ function renderMachine(){
     + `<button class="btn${filled ? ' on' : ''}" data-act="fill">${dieSVG('fill')}FILL P${fillTarget}</button>`
     + (filled ? `<button class="btn" data-act="unfill">UNFILL</button>` : '')
     + `<button class="btn" data-act="save">SAVE</button>`;
-
-  $('#hear').innerHTML = segBtns('hear', [['full','FULL'],['mono','MONO']], ui.mono ? 'mono' : 'full');
-  $('#swing').value = S.swing; $('#swingV').textContent = S.swing + '%';
   const pt = pageTabs(); $('#pages').innerHTML = pt; $('#pages').hidden = !pt;
 
   const P = S.main, off = ui.page * 16;
-  let h = '<div></div>';
-  for (let i = 0; i < 16; i++) h += `<div class="hdr${i % 4 === 0 ? ' beat' : ''}">${i + 1}</div>`;
+  let m = '';
   for (const t of TRACKS){
-    const flags = (S.locks[t.id] ? 'L' : '') + (ui.solo[t.id] ? 'S' : '');
-    h += `<button class="tname${ui.sel === t.id ? ' sel' : ''}" data-act="tsel" data-v="${t.id}">${t.name}${flags ? `<i>${flags}</i>` : ''}</button>`;
+    const sel = ui.sel === t.id, flags = (S.locks[t.id] ? 'L' : '') + (ui.solo[t.id] ? 'S' : '');
+    m += `<button class="mlabel${sel ? ' sel' : ''}" data-act="tsel" data-v="${t.id}">${t.name}${flags ? `<i>${flags}</i>` : ''}</button>`;
     for (let i = 0; i < 16; i++){
       const idx = off + i;
-      h += `<button class="cell${P[t.id][idx] ? ' on' : ''}${i % 4 === 0 && i ? ' q' : ''}" data-act="cell" data-t="${t.id}" data-v="${idx}" data-idx="${idx}" aria-label="${t.name} step ${i + 1}"></button>`;
+      m += `<div class="mc${P[t.id][idx] ? ' on' : ''}${sel ? ' selrow' : ''}${i % 4 === 0 && i ? ' q' : ''}" data-act="tsel" data-v="${t.id}" data-idx="${idx}"></div>`;
     }
   }
-  $('#grid').innerHTML = h;
+  $('#mini').innerHTML = m;
 
   const s = ui.sel;
   $('#trackbar').innerHTML =
@@ -621,6 +654,16 @@ function renderMachine(){
     + `<button class="btn" data-act="shr" aria-label="Shift ${NAME[s]} right">►</button>`
     + `<button class="btn" data-act="flip" aria-label="Reverse ${NAME[s]}">FLIP</button>`
     + `<button class="btn" data-act="clr" aria-label="Clear ${NAME[s]}">CLR</button>`;
+
+  $('#padName').textContent = NAME[s] + (S.len > 16 ? ` · PAT ${ui.page + 1}` : '');
+  const hits = stepsOf(P, s, off);
+  $('#padInfo').textContent = hits.length ? `${hits.length} HIT${hits.length > 1 ? 'S' : ''}` : 'TAP PADS TO ADD';
+  let h = '';
+  for (let i = 0; i < 16; i++){
+    const idx = off + i, on = P[s][idx];
+    h += `<button class="pad${on ? ' on' : ''}" data-act="cell" data-t="${s}" data-v="${idx}" data-idx="${idx}" aria-label="${NAME[s]} step ${i + 1}${on ? ', on' : ''}"><span class="n">${i + 1}</span><span class="s">${on ? KEY[s] : ''}</span></button>`;
+  }
+  $('#pads').innerHTML = h;
 }
 function renderPO(){
   const P = S.main, off = ui.page * 16;
@@ -672,7 +715,8 @@ function renderSaved(){
     : '<p class="empty">No saved patterns yet. Tap SAVE on the MACHINE tab when a beat grabs you.</p>';
 }
 function renderBar(){
-  $('#play').textContent = playing ? 'HALT' : 'RUN'; $('#play').classList.toggle('on', playing);
+  $('#play').innerHTML = playing ? '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="5.5" y="4.5" width="4.5" height="15" fill="currentColor"/><rect x="14" y="4.5" width="4.5" height="15" fill="currentColor"/></svg>' : '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg>'; $('#play').classList.toggle('on', playing);
+  $('#play').setAttribute('aria-label', playing ? 'Pause' : 'Play');
   $('#tempo').textContent = S.tempo;
   const solos = IDS.filter(id => ui.solo[id]).map(id => NAME[id]);
   const hear = ui.poSolo ? `<b>SOLO ${NAME[ui.poSolo]} · MONO</b>` : solos.length ? `<b>SOLO ${solos.join('+')}</b>${ui.mono ? ' · MONO' : ''}` : (ui.mono ? 'HEARING PO MONO' : 'HEARING FULL KIT');
@@ -694,6 +738,10 @@ function render(){
 function rotate(a, lo, dir){ const seg = a.slice(lo, lo + 16); const r = dir > 0 ? [seg[15], ...seg.slice(0, 15)] : [...seg.slice(1), seg[0]]; a.splice(lo, 16, ...r); }
 const A = {
   genre(v){ S.genre = v; S.tempo = GENRES[v].tempo; S.swing = GENRES[v].swing; generate(); },
+  cstyle(){ const ks = Object.keys(GENRES); A.genre(ks[(ks.indexOf(S.genre) + 1) % ks.length]); },
+  csteps(){ const L = [16,32,48,64]; A.len(String(L[(L.indexOf(S.len) + 1) % L.length])); },
+  cswing(){ const W = [0,8,16,24,32,40,50]; S.swing = W.find(w => w > S.swing) ?? 0; touchHistory(); log(`SWING ${S.swing}%`); render(); },
+  chear(){ A.hear(ui.mono ? 'full' : 'mono'); },
   defcon(v){ S.defcon = +v; log(`DEFCON ${v} · ${DEF_TXT[v]}`); render(); },
   len(v){ const n = +v; if (n === S.len) return; setLen(n, false); pushHistory(); log(`LENGTH ${n} STEPS`); render(); },
   gen(){ generate(); },
@@ -772,7 +820,6 @@ document.addEventListener('click', e => {
   if (!b || b.disabled) return;
   const f = A[b.dataset.act]; if (f) f(b.dataset.v, b);
 });
-$('#swing').addEventListener('input', e => { S.swing = +e.target.value; $('#swingV').textContent = S.swing + '%'; touchHistory(); });
 
 generate();
 log('GREETINGS PROFESSOR FALKEN.');
