@@ -15,15 +15,19 @@ function playStep(idx, t){
 
 function tick(){
   while (nextT < AC.currentTime + .1){
-    const d = stepDur(), g = gstep, base = g % S.len, sw = base % 2 ? d * S.swing / 100 * .6 : 0;
-    if (fxPending && g % 16 === 0){
-      const pend = fxPending; fxPending = null;
-      fxStopAll(nextT);
-      if (pend.type === 'swap') fxStartNow(pend.id, g, nextT);
-      later(nextT, fxShow);
-    }
-    plan(g, base, d).forEach(e => { const t = nextT + e.off + (e.sw ? sw : 0); playStep(e.idx, t); vq.push({t, idx:e.idx}); });
-    fxAudio(nextT, d, g);
+    const d = stepDur(), g = gstep;
+    if (g % 16 === 0) fxBoundary(g, nextT);          // queued effect changes and RESET land on the downbeat
+    const base = g % S.len, sw = base % 2 ? d * S.swing / 100 * .6 : 0;
+    const f = fxStep(g, base, nextT);                  // live pad, else the effect recorded on this step
+    plan(f, g, base, d).forEach(e => {
+      const t = nextT + e.off + (e.sw ? sw : 0);
+      fxPm = e.pm || 1; fxLv = e.lv || 1;
+      if (e.voice) VOICE[e.voice](t);
+      else if (e.noise) noiseHit(t);
+      else { playStep(e.idx, t); vq.push({t, idx:e.idx}); }
+    });
+    fxPm = 1; fxLv = 1;
+    fxAudio(f, nextT, d, g, sw);
     nextT += d; gstep++;
   }
   vq.sort((a, b) => a.t - b.t);
@@ -38,6 +42,7 @@ function draw(){
 }
 function mark(){
   $$('.ph').forEach(e => e.classList.remove('ph'));
+  perfMark();
   if (!cur) return;
   $$(`[data-idx="${cur.idx}"]`).forEach(e => e.classList.add('ph'));
   $$(`[data-act="page"][data-v="${Math.floor(cur.idx / 16)}"]`).forEach(e => e.classList.add('ph'));

@@ -30,6 +30,11 @@ const A = {
     $('#latchBtn').setAttribute('aria-pressed', ui.latch); fxShow();
   },
   fxoff(){ fxAllOff(); },
+  bank(v){ ui.bank = +v; fxPads(); },
+  rec(){ fxRec(); },
+  tsave(){ takeTemp(false); },
+  recall(){ fxRecall(); },
+  fxwipe(){ fxWipe(); },
   csel(){ ui.sel = IDS[(IDS.indexOf(ui.sel) + 1) % IDS.length]; render(); },
   save(){
     const list = store.get('wopr.saved', []), d = new Date();

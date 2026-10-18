@@ -10,11 +10,10 @@
 <meta name="theme-color" content="#020b05">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>WOPR Beat Machine</title>
-<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;600&display=swap">
-<link rel="stylesheet" href="css/style.css?v=16">
+<link rel="stylesheet" href="css/style.css?v=17">
 </head>
 <body>
 <div class="app">
@@ -71,10 +70,17 @@
     <section id="tab-perform" class="tab" hidden>
       <p class="console" id="perfHead">&gt; TAP A PAD TO PUNCH IN</p>
       <div class="perfbar"><span id="perfPat">PAT 1/1</span><div class="pstrip" id="pstrip"></div></div>
+      <div class="row"><div class="seg banks" id="banks" aria-label="Effect banks"></div></div>
       <div class="fxgrid" id="fxgrid" aria-label="Punch-in effects"></div>
       <div class="row">
         <button class="btn on" data-act="latch" id="latchBtn" aria-pressed="true">TAP MODE</button>
         <button class="btn" data-act="fxoff" id="allOffBtn">ALL OFF</button>
+        <button class="btn rec" data-act="rec" id="recBtn" aria-pressed="false">● REC</button>
+      </div>
+      <div class="row">
+        <button class="btn" data-act="tsave" id="tsaveBtn">TEMP SAVE</button>
+        <button class="btn cyc" data-act="recall" id="recallBtn">RESET<small>NO TEMP SAVE</small></button>
+        <button class="btn" data-act="fxwipe" id="wipeBtn">CLEAR FX</button>
       </div>
     </section>
 
@@ -91,7 +97,10 @@
       <section><h2>MOVES</h2><p>Tap MOVES to swap the pads for the moves panel; tap PADS to go back. Section moves rewrite the pattern you are on and always start from its original groove, so tapping one again re-rolls it. FILL: snare-led fill. BUILD: a roll that gets denser. BREAK: breakdown with no kick. GAP: silence before a drop. DROP: the groove with a marker on step 1. HALF: half-time feel. STRIP: one or two sounds, for intros and outros. STOP: stabs, then silence. ANSWER: keeps the last pattern's kick and moves the snare. On a 16-step loop, FILL and ANSWER add Pattern 2.</p></section>
       <section><h2>SPICES</h2><p>Spices are small tweaks that stack: PUSH moves a kick or snare a step early, O-HAT adds open hats, RATCHET repeats a hit, M-GUN fires kicks to the end of the bar, GHOST adds extra snares, EUCLID spreads hits evenly, POLY lays a 3, 5, 6 or 7 step loop across the whole beat. RATCHET, EUCLID and POLY use the SOUND button. RESET puts the pattern back to its original groove.</p></section>
       <section><h2>SONG</h2><p>ROLL A SONG picks a song shape such as STRIP, GROOVE, BUILD, DROP and rolls every pattern to match. Tabs show each pattern's role. Repeated sections are exact copies, so on the PO you program fewer slots and repeat them in the chain. BUILD ORDER on PO VIEW lists the slots, what to copy from, and the chain.</p></section>
-      <section><h2>PERFORM</h2><p>Punch-in effects like a Pocket Operator. Tap a pad and the effect starts right away. Tap it again, or tap a different pad, and the change waits for the end of the 16-step pattern: the current effect keeps going (blinking), the next one shows dashed, then they swap on the downbeat. NO EFFECT and ALL OFF also wait: the effect finishes the pattern, then the plain beat comes back on the downbeat. Only the stop button cuts everything at once. The beat keeps running underneath, so you always land back in time. HOLD MODE works like a PO: hold a pad, and letting go ends the effect at the end of the pattern. Hold a second pad to queue a switch; lift it before the downbeat to cancel. Switching modes keeps whatever is playing. Pads 1 to 16 follow the PO-33 layout: LOOP 16, LOOP 12, LOOP SHORT, LOOP SHORTER, UNISON, UNISON LOW, OCTAVE UP, OCTAVE DOWN, STUTTER 4, STUTTER 3, SCRATCH, SCRATCH FAST, 6/8 QUANTIZE, RETRIGGER, REVERSE and NO EFFECT. The last row adds the PO-35 effects: STUTTER SWEEP, TRANCE GATE, HALF RATE and 16-BAR BUILD UP. Pressing a pad while stopped starts the beat.</p></section>
+      <section><h2>PERFORM</h2><p>Punch-in effects like a Pocket Operator. Tap a pad and the effect starts right away. Tap it again, or tap a different pad, and the change waits for the end of the 16-step pattern: the current effect keeps going (blinking), the next one shows dashed, then they swap on the downbeat. ALL OFF also waits: the effect finishes the pattern, then the plain beat comes back on the downbeat. Only the stop button cuts everything at once. The beat keeps running underneath, so you always land back in time. HOLD MODE works like a PO: hold a pad, and letting go ends the effect at the end of the pattern. Hold a second pad to queue a switch; lift it before the downbeat to cancel. Pressing a pad while stopped starts the beat.</p></section>
+      <section><h2>EFFECT BANKS</h2><p>48 effects from Teenage Engineering gear, 16 per bank. The small tag on each pad says which device it comes from. 1 · K.O: the PO-33 effects in PO-33 order (LOOP 16 to REVERSE), plus the PO-35 STUTTER SWEEP. 2 · TONE: PO-35 TRANCE GATE, HALF RATE and 16-BAR BUILD UP; PO-32 PITCH BEND UP, PITCH LFO, SQUASH, BOUNCING BALL and EQ SWEEP; PO-12 LOWPASS and HIPASS filters and sweeps, DISTORTION, BIT CRUSH, DELAY and FEEDBACK. 3 · CHOP: PO-12 NOTE SHUFFLE; PO-28 FILL-IN, GLITCH, BLINDS and NOISE; PO-24 DISTORT LOW and HIGH; OP-Z DUCK and STEREO; EP-133 TAPE STOP, TREMOLO, PITCH RANDOM, FILTER LFO and SLICE. These are synthesized versions built for this app, so they will not sound exactly like the hardware. A bank button lights up when its effect is playing, so you can change banks mid-effect.</p></section>
+      <section><h2>RECORD EFFECTS</h2><p>Tap REC (it turns red), then play pads. Every step an effect plays on gets written into the pattern, and from then on it plays back by itself every time the loop comes round. Recording adds on top: steps where you play nothing keep what was there, so you can build effects up over several passes. A pad you play live always wins over the recorded effect. Red marks on the strip under the pattern counter show recorded steps. CLEAR FX wipes every recorded effect. NEW BEAT also starts with none.</p></section>
+      <section><h2>TEMP SAVE AND RESET</h2><p>TEMP SAVE stores the beat as it is right now, including any recorded effects. RESET goes back to it: while playing it waits for the end of the current pattern (blinking), then reloads on the downbeat with no gap, and REC turns off. If you tap REC with no temp save yet, one is taken first, so RESET can always undo a take. The temp save stays on this phone between visits. For a performance: build the beat, TEMP SAVE, record effects, play the result, then RESET to drop back to the clean version on the beat. SAVE at the top keeps a copy for good, recorded effects included.</p></section>
       <section><h2>PLAY ALONG</h2><p>On PO VIEW, tap a sound, then SOLO IN MONO. It loops only the steps that fit on the PO for that sound. Learn it by ear, record it live, then tap the next sound and the solo follows.</p></section>
       <section><h2>COPY TO THE PO</h2><p>PO VIEW shows a 4x4 grid laid out like the PO buttons. MONO squeezes the pattern to one sound per step: kick wins, then snare, metal, open hat and closed hat. Set HEAR to MONO to hear what will fit. STEP LIST shows BUILD ORDER: which PO slots to program, which to copy (select the slot, hold WRITE + PATTERN, press the new slot) and the chain (hold PATTERN, press the slots in order).</p></section>
       <section><h2>FOLLOW</h2><p>With FOLLOW on, the pattern tabs jump along with the playhead. Tapping a tab yourself while it plays turns FOLLOW off.</p></section>
@@ -120,19 +129,20 @@
     </div>
   </nav>
 </div>
-<script src="js/core.js?v=16"></script>
-<script src="js/styles.js?v=16"></script>
-<script src="js/kits.js?v=16"></script>
-<script src="js/audio.js?v=16"></script>
-<script src="js/history.js?v=16"></script>
-<script src="js/generate.js?v=16"></script>
-<script src="js/moves.js?v=16"></script>
-<script src="js/sequencer.js?v=16"></script>
-<script src="js/perform.js?v=16"></script>
-<script src="js/po.js?v=16"></script>
-<script src="js/render.js?v=16"></script>
-<script src="js/actions.js?v=16"></script>
-<script src="js/patches/patches.js?v=16"></script>
-<script src="js/main.js?v=16"></script>
+
+<script src="js/core.js?v=17"></script>
+<script src="js/styles.js?v=17"></script>
+<script src="js/kits.js?v=17"></script>
+<script src="js/audio.js?v=17"></script>
+<script src="js/history.js?v=17"></script>
+<script src="js/generate.js?v=17"></script>
+<script src="js/moves.js?v=17"></script>
+<script src="js/sequencer.js?v=17"></script>
+<script src="js/perform.js?v=17"></script>
+<script src="js/po.js?v=17"></script>
+<script src="js/render.js?v=17"></script>
+<script src="js/actions.js?v=17"></script>
+<script src="js/patches/patches.js?v=17"></script>
+<script src="js/main.js?v=17"></script>
 </body>
 </html>

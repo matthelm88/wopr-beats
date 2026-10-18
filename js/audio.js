@@ -3,15 +3,43 @@
    All files share one global scope: anything defined in an earlier file can be used here.
    Load order is set in index.html. */
 /* ---------- audio ---------- */
+/* Effect chain (every stage is a fixed node, so effects switch sample-exact on the downbeat):
+   master → lowpass (fxFilt) → hipass (fxHP) → peaking EQ (fxEQ) → gate (fxGate)
+          → dry / distortion / bit-crush mix → fxSum → stereo pan → compressor → out
+   plus a tempo-synced delay sent from after the pan. */
 let AC = null, master = null, noiseBuf = null, fxFilt = null, fxGate = null;
+let fxHP = null, fxEQ = null, fxDry = null, fxDistG = null, fxCrushG = null, fxSum = null, fxPan = null, fxComp = null;
+let dly = null, dlySend = null, dlyFb = null;
+let fxEff = null, fxPm = 1, fxLv = 1;   // effect in charge, plus per-hit pitch and level set by the sequencer
+function makeCurve(drive, bits){
+  const n = 2048, c = new Float32Array(n), k = 1 + drive * 24, nrm = Math.tanh(k);
+  for (let i = 0; i < n; i++){
+    let y = i / (n - 1) * 2 - 1;
+    if (drive) y = Math.tanh(y * k) / nrm;
+    if (bits){ const q = Math.pow(2, bits) / 2; y = Math.round(y * q) / q; }
+    c[i] = y;
+  }
+  return c;
+}
 function audio(){
   if (!AC){
     AC = new (window.AudioContext || window.webkitAudioContext)();
-    const comp = AC.createDynamicsCompressor();
-    master = AC.createGain(); master.gain.value = .8;
-    fxFilt = AC.createBiquadFilter(); fxFilt.type = 'lowpass'; fxFilt.frequency.value = 20000; fxFilt.Q.value = .7;
-    fxGate = AC.createGain();
-    master.connect(fxFilt); fxFilt.connect(fxGate); fxGate.connect(comp); comp.connect(AC.destination);
+    const g = v => { const n = AC.createGain(); n.gain.value = v; return n; };
+    const bq = (type, f) => { const n = AC.createBiquadFilter(); n.type = type; n.frequency.value = f; n.Q.value = .7; return n; };
+    fxComp = AC.createDynamicsCompressor();
+    master = g(.8);
+    fxFilt = bq('lowpass', 20000); fxHP = bq('highpass', 10); fxEQ = bq('peaking', 1000); fxEQ.gain.value = 0;
+    fxGate = g(1); fxDry = g(1); fxDistG = g(0); fxCrushG = g(0); fxSum = g(1);
+    const dws = AC.createWaveShaper(); dws.curve = makeCurve(.9, 0); dws.oversample = '2x';
+    const cws = AC.createWaveShaper(); cws.curve = makeCurve(.15, 3);
+    fxPan = AC.createStereoPanner ? AC.createStereoPanner() : g(1);
+    master.connect(fxFilt); fxFilt.connect(fxHP); fxHP.connect(fxEQ); fxEQ.connect(fxGate);
+    fxGate.connect(fxDry); fxGate.connect(dws); fxGate.connect(cws);
+    fxDry.connect(fxSum); dws.connect(fxDistG); fxDistG.connect(fxSum); cws.connect(fxCrushG); fxCrushG.connect(fxSum);
+    fxSum.connect(fxPan); fxPan.connect(fxComp); fxComp.connect(AC.destination);
+    dly = AC.createDelay(2); dlySend = g(0); dlyFb = g(.3);
+    const dlyTone = bq('lowpass', 3200);
+    fxPan.connect(dlySend); dlySend.connect(dly); dly.connect(dlyTone); dlyTone.connect(dlyFb); dlyFb.connect(dly); dlyTone.connect(fxComp);
     noiseBuf = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
     const d = noiseBuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
@@ -25,14 +53,7 @@ const shapers = {};
 function shaper(drive, bits){
   const key = drive + '_' + bits;
   if (!shapers[key]){
-    const n = 2048, c = new Float32Array(n), k = 1 + drive * 24, nrm = Math.tanh(k);
-    for (let i = 0; i < n; i++){
-      let y = i / (n - 1) * 2 - 1;
-      if (drive) y = Math.tanh(y * k) / nrm;
-      if (bits){ const q = Math.pow(2, bits) / 2; y = Math.round(y * q) / q; }
-      c[i] = y;
-    }
-    const ws = AC.createWaveShaper(); ws.curve = c; ws.oversample = drive ? '2x' : 'none'; ws.connect(master);
+    const ws = AC.createWaveShaper(); ws.curve = makeCurve(drive, bits); ws.oversample = drive ? '2x' : 'none'; ws.connect(master);
     shapers[key] = ws;
   }
   return shapers[key];
@@ -76,12 +97,13 @@ const LAYER = {
 };
 const F = (f, pm) => Math.max(20, Math.min(18000, f * pm));
 function pitchSet(){
-  let p = 1;
-  if (fxOn.has('OCTU')) p *= 2;
-  if (fxOn.has('OCTD')) p *= .5;
-  const r = [[p, 1]];
-  if (fxOn.has('UNI')) r.push([p * 1.015, .7], [p * .985, .7]);
-  if (fxOn.has('UNIL')) r.push([p * .5, .85]);
+  const id = fxEff ? fxEff.id : null, v = fxLv;
+  let p = fxPm;
+  if (id === 'OCTU') p *= 2;
+  if (id === 'OCTD') p *= .5;
+  const r = [[p, v]];
+  if (id === 'UNI') r.push([p * 1.015, .7 * v], [p * .985, .7 * v]);
+  if (id === 'UNIL') r.push([p * .5, .85 * v]);
   return r;
 }
 function hit(spec, t){

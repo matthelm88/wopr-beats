@@ -59,7 +59,7 @@ function generate(){
     IDS.forEach(id => M[id].push(...page[id]));
   }
   IDS.forEach(id => { if (S.locks[id] && S.main) M[id] = fit(S.main[id], S.len); });
-  S.main = M; S.base = {}; S.roles = {};
+  S.main = M; S.base = {}; S.roles = {}; S.auto = null;   // a new beat starts with no recorded effects
   if (ui.page >= pages) ui.page = 0;
   roll('gen'); pushHistory();
   log(`${GENRES[S.genre].name} · DEFCON ${S.defcon} · ${S.len} STEPS`);
@@ -76,5 +76,6 @@ function setLen(n, exact){
   }
   [S.base, S.roles].forEach(o => Object.keys(o).forEach(p => { if (+p >= n / 16) delete o[p]; }));
   S.len = n; S.main = M;
+  if (S.auto) S.auto = fitAuto(S.auto, n);   // recorded effects keep their steps; new steps start empty
   if (ui.page >= n / 16) ui.page = 0;
 }
