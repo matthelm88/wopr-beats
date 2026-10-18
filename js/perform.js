@@ -241,6 +241,7 @@ function fxPads(){
   $('#fxgrid').innerHTML = FXDEF.slice(b * 16, b * 16 + 16).map(([id, name, dev], i) =>
     `<button class="fx" data-fx="${id}" aria-pressed="false"><span class="n">${i + 1}</span><span class="g">${dev}</span><span class="nm">${name}</span></button>`).join('');
   fxShow();
+  if (typeof fitFxNames === 'function') fitFxNames(true);
 }
 function fxShow(){
   const swapTo = fxPending && fxPending.type === 'swap' ? fxPending.id : null, ending = !!fxPending && !!live;
@@ -277,6 +278,31 @@ function perfMark(){
   const p = cur ? Math.floor(cur.idx / 16) : ui.page, off = p * 16;
   $$('#pstrip [data-pstep]').forEach(e => e.classList.toggle('au', !!autoAt(off + +e.dataset.pstep)));
 }
+
+/* Pad names: each one as big as fits its pad, up to twice the old size (the CSS size is the cap).
+   Long words like RETRIGGER come out smaller than short ones like DELAY. Re-runs on bank change, screen size and font load. */
+let fitKey = '';
+function fitFxNames(force){
+  const grid = $('#fxgrid'), first = grid.querySelector('.fx');
+  if (!first || ui.tab !== 'perform' || !first.clientWidth) return;
+  const key = ui.bank + ':' + first.clientWidth + 'x' + first.clientHeight;
+  if (!force && key === fitKey) return;
+  fitKey = key;
+  grid.querySelectorAll('.fx').forEach(pad => {
+    const nm = pad.querySelector('.nm'), num = pad.querySelector('.n');
+    nm.style.fontSize = '';
+    const cap = parseFloat(getComputedStyle(nm).fontSize);
+    const room = pad.clientHeight - 6 - (num.offsetTop + num.offsetHeight);   // height below the pad number
+    const fits = px => { nm.style.fontSize = px + 'px'; return nm.scrollWidth <= nm.clientWidth + .5 && nm.offsetHeight <= room; };
+    if (fits(cap)) return;
+    let lo = 10, hi = cap;
+    for (let i = 0; i < 8; i++){ const mid = (lo + hi) / 2; if (fits(mid)) lo = mid; else hi = mid; }
+    nm.style.fontSize = Math.floor(lo * 2) / 2 + 'px';
+  });
+}
+on('render', () => fitFxNames());
+window.addEventListener('resize', () => fitFxNames());
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => fitFxNames(true));
 
 /* ---------- pads (rebuilt on bank change; presses only toggle classes) ---------- */
 $('#pstrip').innerHTML = Array.from({length:16}, (_, i) => `<i data-pstep="${i}"${i % 4 === 0 && i ? ' class="q"' : ''}></i>`).join('');
