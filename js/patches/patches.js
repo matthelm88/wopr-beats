@@ -4,6 +4,7 @@
    Load order is set in index.html. */
 const PATCHES = [
   'save-file.js',        // EXPORT / LOAD buttons on the SAVED tab
+  'bass.js',             // BASS tab: bass lines that match the style and follow the kick
   // 'example-patch.js',
 ];
 const PATCH_V = (document.currentScript && new URL(document.currentScript.src, location.href).searchParams.get('v')) || WOPR_VERSION;
