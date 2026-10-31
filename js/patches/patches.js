@@ -5,6 +5,7 @@
 const PATCHES = [
   'save-file.js',        // EXPORT / LOAD buttons on the SAVED tab
   'bass.js',             // BASS tab: bass lines that match the style and follow the kick
+  'arrange.js',          // SONG tab: intro, rise, main, outro, finish from the beat, with FM-1, PO and MIDI exports
   // 'example-patch.js',
 ];
 const PATCH_V = (document.currentScript && new URL(document.currentScript.src, location.href).searchParams.get('v')) || WOPR_VERSION;
